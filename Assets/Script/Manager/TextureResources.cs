@@ -93,7 +93,8 @@ public class TextureResources : MonoBehaviour
         foreach (var frame in NormapData.frames)
         {
             string originalKey = frame.Key; // "NormalMap1.2.png"
-            string cleanKey = originalKey.Replace("NormalMap", "").Replace(".png", ""); // "1.2"
+            // string cleanKey = originalKey.Replace("NormalMap", "").Replace(".png", ""); // "1.2"
+            string cleanKey = originalKey.Replace(".png", "");
 
             float spriteX = frame.Value.frame.x;
             float spriteYFromTop = frame.Value.frame.y;
@@ -116,7 +117,7 @@ public class TextureResources : MonoBehaviour
         if (cachedTilingOffsets.TryGetValue(name, out Vector4 tilingOffset))
         {
             material.SetVector("_BaseMap_ST", tilingOffset);
-            material.SetVector("_NormalMap_ST", tilingOffset);
+            // material.SetVector("_NormalMap_ST", tilingOffset);
         }
         else
         {

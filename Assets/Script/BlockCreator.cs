@@ -62,6 +62,7 @@ public class BlockCreator : MonoBehaviour
     private Vector3 FirstBlockPosition;
     private float blockSize;
     private float blockScale;
+    public Movement movement;
     // public int totalStar = 0;
     // public GameObject StarPrefab;
     // public GameObject GoldPrefab;
@@ -92,7 +93,7 @@ public class BlockCreator : MonoBehaviour
         PlayButterflyEffect = false;
         IsPlayAnimationCompleted = false;
         // GetComponent<SupportTools>().Initialize(FirstBlockPosition, blockSize);
-        PlayerBlock.GetComponent<Movement>().Initialize(FirstBlockPosition, blockSize, MapFrame.transform.position.y);
+        movement.Initialize(FirstBlockPosition, blockSize, MapFrame.transform.position.y);
         TurnOffGhostBlock();
     }
 
@@ -109,7 +110,6 @@ public class BlockCreator : MonoBehaviour
         SetBlockImage(PlayerBlock.transform.GetChild(0).gameObject, CurrentTheme, 1);
         PlayerBlock.transform.GetChild(0).name = "1";
         CreateGhostOfPlayerBlock();
-        Movement movement = PlayerBlock.GetComponent<Movement>();
         movement.StartMoveDown();
         movement.SetTutorial(1);
     }
@@ -133,7 +133,6 @@ public class BlockCreator : MonoBehaviour
         // PlayerBlock.transform.GetChild(2).name = "3";
 
         // CreateGhostOfPlayerBlock();
-        // Movement movement = PlayerBlock.GetComponent<Movement>();
         // movement.StartMoveDown();
         // movement.SetTutorial(2);
         // gameManager.PlayTutorialAnimation("Press");
@@ -273,6 +272,7 @@ public class BlockCreator : MonoBehaviour
         // float YY = -FirstBlockPosition.y - GetBlockPositions(blockType)[0].y + MapFrame.transform.position.y*2; triple tetris
         // float YY = FirstBlockPosition.y + GetBlockPositions(blockType)[GetBlockPositions(blockType).Count - 1].y + MapFramePosition.y * 2;
         float YY = FirstBlockPosition.y - GetBlockPositions(blockType)[GetBlockPositions(blockType).Count - 1].y + MapFramePosition.y * 2;
+        // Debug.Log(MapFramePosition + "--- SetPivotPoint");
         switch (blockType)
         {
             case BlockType.oo:
@@ -338,7 +338,7 @@ public class BlockCreator : MonoBehaviour
         ListPlayerBlock.Clear();
 
         CreateGhostOfPlayerBlock();
-        PlayerBlock.GetComponent<Movement>().StartMoveDown();
+        movement.StartMoveDown();
         // supportTools.CheckToolOpen(isChallenge);
     }
 
@@ -508,6 +508,7 @@ public class BlockCreator : MonoBehaviour
 
         // SetValue();
         Vector2 landmarkPocation = GetLandmarkPocation();
+        Debug.Log(landmarkPocation);
         GameObject firstBlock = ObjectPoolManager.SpawnObject(blockPrefab, blockPrefab.transform.position, Quaternion.identity);
         Transform ListBlockTransform = ListBlock.transform;
 
@@ -516,13 +517,20 @@ public class BlockCreator : MonoBehaviour
             blockScale = -landmarkPocation.y * 2 / grid.GetLength(0) / firstBlock.GetComponent<MeshFilter>().mesh.bounds.size.x;
         }
         else blockScale = (-landmarkPocation.x * 2 - 5) / grid.GetLength(1) / firstBlock.GetComponent<MeshFilter>().mesh.bounds.size.x;
-        landmarkPocation.x = -blockScale * 8;
         // 5: kich thuoc khung
         // 9: so luong block hang ngang
+        // blockScale /= 100;
         firstBlock.transform.localScale = new Vector3(blockScale, blockScale, blockScale);
-
         blockSize = GetMeshSize(firstBlock.transform).x;
-        FirstBlockPosition = new Vector3(landmarkPocation.x, landmarkPocation.y + blockSize / 2 + MapFrame.transform.position.y + 10, 90 + blockScale);
+        // landmarkPocation.x = -blockScale * 8;
+        landmarkPocation.x = -blockSize * 4;
+
+        FirstBlockPosition = new Vector3(landmarkPocation.x, landmarkPocation.y + blockSize / 2 + MapFrame.transform.position.y + 10, 90 + blockSize / 2);
+        // Debug.Log(blockScale);
+        // Debug.Log(blockSize);
+        // Debug.Log(blockSize/2);
+        // Debug.Log(FirstBlockPosition);
+
         // BlockFrame.transform.localScale = Vector3.one;
         // float blockFrameScale = (-landmarkPocation.x * 2 + blockSize) / (GetMeshSize(BlockFrame.transform).x - 1.58379f);
         // BlockFrame.transform.localScale = BlockFrame.transform.localScale * blockFrameScale + new Vector3(0, 0, blockFrameScale * 0.5f);
@@ -593,6 +601,8 @@ public class BlockCreator : MonoBehaviour
         // else 
         // Invoke("CreateRandomBlock", 0.1f * time);
         // Invoke("PlayFrameItemToFind", 0.1f * time);
+        // Debug.Log(MapFrame.transform.position);
+        // MapFramePosition = MapFrame.transform.position;
         CreateRandomBlock();
         SetCamera();
     }
@@ -600,10 +610,10 @@ public class BlockCreator : MonoBehaviour
     Vector3 MapFramePosition;
     void SetCamera()
     {
-        MapFramePosition = MapFrame.transform.position;
+        // MapFramePosition = MapFrame.transform.position;
         Camera camera = Camera.main;
-        camera.transform.position = new Vector3(0, -70, -25);
-        camera.transform.rotation = Quaternion.Euler(-35, 0, 0);
+        camera.transform.position = new Vector3(0, -34.6f, -26.7f);
+        camera.transform.rotation = Quaternion.Euler(-22.448f, 0, 0);
     }
 
     void PlayFrameItemToFind()
@@ -616,9 +626,7 @@ public class BlockCreator : MonoBehaviour
         Renderer renderer = block.GetComponent<Renderer>();
         material.Clear();
 
-        // material.SetTexture("_BaseMap", textureResources.ListBlockTexture.FirstOrDefault(x => x.name == $"tt{CurrentTheme}.{randomTexture}"));
-        // material.SetTexture("_BumpMap", textureResources.ListBlockTexture.FirstOrDefault(x => x.name == $"NormalMap{CurrentTheme}.{randomTexture}"));
-        textureResources.SetTexture(material, $"{CurrentTheme}.{randomTexture}");
+        textureResources.SetTexture(material, $"{randomTexture}");
         renderer.SetPropertyBlock(material);
     }
 
@@ -861,59 +869,6 @@ public class BlockCreator : MonoBehaviour
         block.transform.SetParent(PoolBlock.transform);
     }
 
-    public Vector2 GetCanvasSizeInUnits()
-    {
-        if (canvas == null)
-        {
-            Debug.LogError("Canvas not assigned!");
-            return Vector2.zero;
-        }
-
-        RectTransform canvasRect = canvas.GetComponent<RectTransform>();
-        Vector2 size = Vector2.zero;
-
-        switch (canvas.renderMode)
-        {
-            case RenderMode.ScreenSpaceOverlay:
-            case RenderMode.ScreenSpaceCamera:
-                // Trong chế độ Screen Space, đơn vị là pixels
-                size = canvasRect.rect.size;
-                Debug.Log("Canvas size in pixels: " + size);
-
-                // Chuyển đổi từ pixels sang đơn vị thế giới nếu có camera
-                if (canvas.renderMode == RenderMode.ScreenSpaceCamera && canvas.worldCamera != null)
-                {
-                    // Lấy khoảng cách từ canvas đến camera
-                    float distance = Mathf.Abs(canvas.planeDistance);
-
-                    // Tính kích thước trong đơn vị thế giới
-                    Camera cam = canvas.worldCamera;
-                    float height = 2.0f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-                    float width = height * cam.aspect;
-
-                    // Tỷ lệ giữa kích thước pixel và kích thước thế giới
-                    float pixelToUnitRatio = height / Screen.height;
-
-                    size.x *= pixelToUnitRatio;
-                    size.y *= pixelToUnitRatio;
-
-                    Debug.Log("Canvas size in world units: " + size);
-                }
-                break;
-
-            case RenderMode.WorldSpace:
-                // Trong World Space, đơn vị đã là đơn vị thế giới (unit)
-                size = new Vector2(
-                    canvasRect.rect.width * canvasRect.localScale.x,
-                    canvasRect.rect.height * canvasRect.localScale.y
-                );
-                Debug.Log("Canvas size in world units: " + size);
-                break;
-        }
-
-        return size;
-    }
-
     Vector3 GetMeshSize(Transform block)
     {
         MeshFilter meshFilter = block.GetComponent<MeshFilter>();
@@ -969,21 +924,20 @@ public class BlockCreator : MonoBehaviour
 
     public void LockPlayerBlock(string txt = "")
     {
-        TurnOffGhostBlock();
+        // TurnOffGhostBlock();
         List<GameObject> listChildBlock = new List<GameObject>();
         isPlayerBlockMoveDown = false;
 
         int total = PlayerBlock.transform.childCount;
-        for(int i = 0; i < 1;)
+        for (int i = 0; i < 1;)
         {
             total--;
-            if(total == 0) i++;
+            if (total == 0) i++;
             Transform child = PlayerBlock.transform.GetChild(0);
             Vector3 childPosition = child.position;
             int x = Mathf.RoundToInt((childPosition.y - FirstBlockPosition.y) / blockSize);
             int y = Mathf.RoundToInt((childPosition.x - FirstBlockPosition.x) / blockSize);
-            // Debug.Log(x + " / " + y);
-            if (grid[x, y] == null && x < grid.GetLength(0)) grid[x, y] = child.gameObject;
+            if (grid[x, y] == null && x >= 0) grid[x, y] = child.gameObject;
             else
             {
                 if (grid[x, y]) grid[x, y].transform.localScale = Vector3.one;
@@ -1328,12 +1282,14 @@ public class BlockCreator : MonoBehaviour
         bool isRight = nextPositionX > 0;
         int offsetY = isRight ? 1 : -1;
 
+        float xx = movement.currentPosX - block.position.x;
+
         for (int i = 0; i < length; i++)
         {
-            Vector3 childPosition = block.GetChild(i).position;
-            int x = Mathf.CeilToInt((childPosition.y - firstY) / blockSize);
+            Vector3 childPosition = block.GetChild(i).position + new Vector3(xx, 0, 0);
+            int x = Mathf.FloorToInt((childPosition.y - firstY) / blockSize);
             x = x == -1 ? 0 : x;
-            int xNext = Mathf.CeilToInt((childPosition.y + nextBlockPosition - firstY) / blockSize);
+            int xNext = Mathf.FloorToInt((childPosition.y + nextBlockPosition - firstY) / blockSize);
             int y = Mathf.RoundToInt((childPosition.x - firstX) / blockSize);
             int targetY = y + offsetY;
 
@@ -1344,31 +1300,6 @@ public class BlockCreator : MonoBehaviour
             {
                 if (x + 1 < width && grid[x + 1, targetY] != null) return false;
             }
-
-            // if (x > xNext)
-            // {
-            //     if (isRight)
-            //     {
-            //         if (grid[x, targetY] != null) return false;
-            //     }
-            //     else
-            //     {
-            //         if (grid[x, targetY] != null) return false;
-            //     }
-            // }
-            // else
-            // {
-            //     if (isRight)
-            //     {
-            //         if (grid[x, targetY] != null) return false;
-            //         if (x + 1 < width && grid[x + 1, targetY] != null) return false;
-            //     }
-            //     else
-            //     {
-            //         if (grid[x, targetY] != null) return false;
-            //         if (x + 1 < width && grid[x + 1, targetY] != null) return false;
-            //     }
-            // }
         }
         return true;
     }
@@ -1606,7 +1537,7 @@ public class BlockCreator : MonoBehaviour
                 }
                 else if (i >= gridHeight)
                 {
-                    float distanceToCollision = FirstBlockPosition.y - childPosition.y;
+                    float distanceToCollision = FirstBlockPosition.y + blockSize * gridHeight - childPosition.y;
                     minDistance = minDistance > distanceToCollision ? distanceToCollision : minDistance;
                     break;
                 }
@@ -1697,48 +1628,48 @@ public class BlockCreator : MonoBehaviour
         CreateRandomBlock();
     }
 
-    public void MovePlayerBlock()
-    {
-        int playerBlockLength = PlayerBlock.transform.childCount;
-        if (playerBlockLength == 0) return;
-        int blockHeight = 0;
-        int gridHeight = grid.GetLength(0);
-        for (int z = 0; z < playerBlockLength; z++)
-        {
-            Vector3 blockPosition = PlayerBlock.transform.GetChild(z).position;
-            int originalBlocki = Mathf.RoundToInt((blockPosition.y - FirstBlockPosition.y) / blockSize);
-            int j = Mathf.RoundToInt((blockPosition.x - FirstBlockPosition.x) / blockSize);
-            // Debug.Log(originalBlocki + " / " + j);
-            for (int i = 0; i < gridHeight; i++)
-            {
-                GameObject child = grid[i, j];
-                if (child != null)
-                {
-                    int height = originalBlocki + (i - 1);
-                    blockHeight = blockHeight < height ? height : blockHeight;
-                    break;
-                }
-                else if (i == gridHeight - 1 && child == null)
-                {
-                    int height = originalBlocki + i;
-                    blockHeight = blockHeight < height ? height : blockHeight;
-                    break;
-                }
-            }
-        }
+    // public void MovePlayerBlock()
+    // {
+    //     int playerBlockLength = PlayerBlock.transform.childCount;
+    //     if (playerBlockLength == 0) return;
+    //     int blockHeight = 0;
+    //     int gridHeight = grid.GetLength(0);
+    //     for (int z = 0; z < playerBlockLength; z++)
+    //     {
+    //         Vector3 blockPosition = PlayerBlock.transform.GetChild(z).position;
+    //         int originalBlocki = Mathf.RoundToInt((blockPosition.y - FirstBlockPosition.y) / blockSize);
+    //         int j = Mathf.RoundToInt((blockPosition.x - FirstBlockPosition.x) / blockSize);
+    //         // Debug.Log(originalBlocki + " / " + j);
+    //         for (int i = 0; i < gridHeight; i++)
+    //         {
+    //             GameObject child = grid[i, j];
+    //             if (child != null)
+    //             {
+    //                 int height = originalBlocki + (i - 1);
+    //                 blockHeight = blockHeight < height ? height : blockHeight;
+    //                 break;
+    //             }
+    //             else if (i == gridHeight - 1 && child == null)
+    //             {
+    //                 int height = originalBlocki + i;
+    //                 blockHeight = blockHeight < height ? height : blockHeight;
+    //                 break;
+    //             }
+    //         }
+    //     }
 
-        // Debug.Log(blockHeight);
-        for (int z = 0; z < playerBlockLength; z++)
-        {
-            Vector3 blockPosition = PlayerBlock.transform.GetChild(z).position;
+    //     // Debug.Log(blockHeight);
+    //     for (int z = 0; z < playerBlockLength; z++)
+    //     {
+    //         Vector3 blockPosition = PlayerBlock.transform.GetChild(z).position;
 
-            int i = Mathf.RoundToInt((blockPosition.y - FirstBlockPosition.y) / blockSize);
-            int j = Mathf.RoundToInt((blockPosition.x - FirstBlockPosition.x) / blockSize);
+    //         int i = Mathf.RoundToInt((blockPosition.y - FirstBlockPosition.y) / blockSize);
+    //         int j = Mathf.RoundToInt((blockPosition.x - FirstBlockPosition.x) / blockSize);
 
-            Transform child = GhostBlock.transform.GetChild(z);
-            child.position = FirstBlockPosition + new Vector3(j * blockSize, (i + blockHeight) * blockSize, 0.2f);
-        }
-    }
+    //         Transform child = GhostBlock.transform.GetChild(z);
+    //         child.position = FirstBlockPosition + new Vector3(j * blockSize, (i + blockHeight) * blockSize, 0.2f);
+    //     }
+    // }
     
 #endregion
 

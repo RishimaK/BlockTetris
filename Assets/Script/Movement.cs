@@ -55,6 +55,8 @@ public class Movement : MonoBehaviour
         speed = 5;
         allowMoveDown = true;
         enabledTouch = true;
+        currentPosX = transform.position.x;
+        // CoroutineMoveBlock = StartCoroutine(MoveBlock(blockSize));
     }
 
     public void StopAllAction()
@@ -99,9 +101,11 @@ public class Movement : MonoBehaviour
         float min = FirstBlockPosition.x;
         float max = -FirstBlockPosition.x;
         int length = transform.childCount;
+
+        float xx = currentPosX - transform.position.x;
         for (int i = 0; i < length; i++)
         {
-            float childPositionX = transform.GetChild(i).position.x + nextPositionX;
+            float childPositionX = transform.GetChild(i).position.x + nextPositionX + xx;
             if (Math.Round(childPositionX - min) < 0 ||
                 Math.Round(max - childPositionX) < 0) return false;
         }
@@ -112,7 +116,7 @@ public class Movement : MonoBehaviour
 
     // private float timer = 0.01f;
     public float speed = 5;
-    // private float waitTime = 0.15f;
+    private float waitTime = 0.15f;
 
     void CheckBlockMove()
     {
@@ -123,7 +127,7 @@ public class Movement : MonoBehaviour
         float trueDistance = blockCreator.CheckNextPosition(distance);
         if (trueDistance == distance)
         {
-            // waitTime = 0.1f;
+            waitTime = 0.15f;
             transform.position += new Vector3(0, trueDistance, 0);
             // transform.DOMove(new Vector3(transform.position.x, transform.position.y + trueDistance, transform.position.z), timer);
             // transform.position = Vector3.Lerp(transform.position, new Vector3(transform.position.x, transform.position.y + trueDistance, 0), 0.1f);
@@ -131,34 +135,33 @@ public class Movement : MonoBehaviour
         }
         else
         {
-            // if (waitTime == 0.1f)
-            // {
+            if (waitTime == 0.15f)
+            {
                 // audioManager.PlaySFX("PutDownBlock");
                 transform.position += new Vector3(0, trueDistance, 0);
                 // transform.DOMove(new Vector3(transform.position.x, transform.position.y + trueDistance, transform.position.z), timer);
-                // if (speed != 5) waitTime = 0;
-            // }
-            // if (waitTime > 0)
-            // {
-            //     waitTime -= timer;
-                // waitTime -= Time.deltaTime;
-                // return;
-            // }
-            // else
-            // {
+                if (speed != 5) waitTime = 0;
+            }
+            if (waitTime > 0)
+            {
+                waitTime -= timer;
+                waitTime -= Time.deltaTime;
+                return;
+            }
+            else
+            {
                 allowMoveDown = false;
                 // StopTrailRenderer();
                 if (speed == 1500) ShakeMap();
                 blockCreator.LockPlayerBlock();
-            // }
+            }
         }
     }
 
-    void MovePlayerBlock()
-    {
-        // Debug.Log("??");
-        blockCreator.MovePlayerBlock();
-    }
+    // void MovePlayerBlock()
+    // {
+    //     blockCreator.MovePlayerBlock();
+    // }
 
     void ShakeMap()
     {
@@ -172,7 +175,7 @@ public class Movement : MonoBehaviour
     private Vector2 PastTouch = Vector2.zero;
     private Vector2 CurrentTouch = Vector2.zero;
     private bool TouchMove = false;
-    // private float countTimetouch = 0;
+    private float countTimetouch = 0;
     float sensitivity = 2.85f;
     private bool isTouchBegan = false;
 
@@ -183,7 +186,7 @@ public class Movement : MonoBehaviour
 
     void Update()
     {
-        // if (allowMoveDown) CheckBlockMove();
+        if (allowMoveDown) CheckBlockMove();
 
         if (enabledTouch) CheckForInput(); 
     }
@@ -233,7 +236,7 @@ public class Movement : MonoBehaviour
         if (absX >= sensitivity && absX > absY)
         {
             TouchMove = true;
-            // countTimetouch = 0;
+            countTimetouch = 0;
             speed = 5;
             // Debug.Log((int)(TouchDelta.x / sensitivity));
             if (TouchDelta.x < 0 && (MandatoryDirection == "" || MandatoryDirection == "left"))
@@ -241,7 +244,7 @@ public class Movement : MonoBehaviour
                 // move left
                 if (CheckWallKick(-blockSize))
                 {
-                    MoveBlock(-blockSize);
+                    MoveBlockToSides(-blockSize);
                     if (MandatoryDirection == "left") CheckTutorialChildPosition(); 
                 } else PastTouch = CurrentTouch + new Vector2(sensitivity + 0.01f, 0);
             }
@@ -250,7 +253,7 @@ public class Movement : MonoBehaviour
                 // move right
                 if (CheckWallKick(blockSize))
                 {
-                    MoveBlock(blockSize);
+                    MoveBlockToSides(blockSize);
                     if (MandatoryDirection == "right") CheckTutorialChildPosition();
                 } else PastTouch = CurrentTouch - new Vector2(sensitivity + 0.01f, 0);
             }
@@ -258,15 +261,14 @@ public class Movement : MonoBehaviour
         else if (TouchDelta.y > 0 && MandatoryDirection == "")
         {
             // move down
-            // if(speed == 70) countTimetouch += Time.deltaTime;
+            if(speed == 70) countTimetouch += Time.deltaTime;
             if (absY >= 2.5f)
             {
-                // speed = 70;
-                enabledTouch = false;
+                speed = 70;
                 TouchMove = true;
-                // PastTouch -= new Vector2(0, blockSize);
 
-                MovePlayerBlock();
+                // enabledTouch = false;
+                // MovePlayerBlock();
                 PastTouch = CurrentTouch;
             }
         }
@@ -283,27 +285,49 @@ public class Movement : MonoBehaviour
                 if (PastTouch.x > CurrentTouch.x && CheckWallKick(-blockSize))
                 {
                     // move left
-                    MoveBlock(-blockSize);
+                    MoveBlockToSides(-blockSize);
                 }
                 else if (PastTouch.x < CurrentTouch.x && CheckWallKick(blockSize))
                 {
                     // move right
-                    MoveBlock(blockSize);
+                    MoveBlockToSides(blockSize);
                 }
             }
         }
     }
 
-    void MoveBlock(float xOffset)
+    public float currentPosX;
+    private Coroutine CoroutineMoveBlock;
+
+    void MoveBlockToSides(float xOffset)
     {
-        transform.DOKill();
-        transform.position += new Vector3(xOffset, 0, 0);
-        // transform.DOPlay();
-        blockCreator.SetGhostBLockPosition();
-        // int val = xOffset < 0 ? -1 : 1;
-        // PastTouch += new Vector2(val * sensitivity, 0);
-        // PastTouch = new Vector2(PastTouch.x + val * sensitivity, CurrentTouch.y);
+        if(CoroutineMoveBlock != null) StopCoroutine(CoroutineMoveBlock);
+        CoroutineMoveBlock = StartCoroutine(MoveBlock(xOffset));
+
+
+        // transform.position += new Vector3(xOffset, 0, 0);
+        // blockCreator.SetGhostBLockPosition();
+        // PastTouch = CurrentTouch;
+    }
+
+    IEnumerator MoveBlock(float xOffset)
+    {
+        currentPosX += xOffset;
+        float elapsed = 0f;
+        float duration = 0.1f;
+        float firstPositionX = transform.position.x;
         PastTouch = CurrentTouch;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            transform.position = Vector3.Lerp(
+                new Vector3(firstPositionX, transform.position.y, transform.position.z),
+                new Vector3(currentPosX, transform.position.y, transform.position.z),
+                elapsed / duration);
+            yield return null;
+        }
+        transform.position = new Vector3(currentPosX, transform.position.y, transform.position.z);
+        // blockCreator.SetGhostBLockPosition();
     }
 
     void HandleTouchEnded()
@@ -311,25 +335,25 @@ public class Movement : MonoBehaviour
         Vector2 TouchDelta = CurrentTouch - PastTouch;
         float absY = Mathf.Abs(TouchDelta.y);
 
-        // if (countTimetouch <= 0.15f && (speed == 70 ||
-        //     ((MandatoryDirection == "down" || MandatoryDirection == "toolDown") &&
-        //     absY >= 2.5 && PastTouch.y < CurrentTouch.y && Mathf.Abs(TouchDelta.x) < Mathf.Abs(TouchDelta.y))))
-        // {
-            // speed = 1500;
-            // enabledTouch = false;
-            // // PlayTrailRenderer();
-            // if (MandatoryDirection == "down")
-            // {
-            //     allowMoveDown = true;
-            //     CheckEndTutorialChildPosition();
-            // }
-            // else if (MandatoryDirection == "toolDown")
-            // {
-            //     allowMoveDown = true;
-            //     MandatoryDirection = "";
-            // }
-        // }
-        // else speed = 5;
+        if (countTimetouch <= 0.15f && (speed == 70 ||
+            ((MandatoryDirection == "down" || MandatoryDirection == "toolDown") &&
+            absY >= 2.5 && PastTouch.y < CurrentTouch.y && Mathf.Abs(TouchDelta.x) < Mathf.Abs(TouchDelta.y))))
+        {
+            speed = 1500;
+            enabledTouch = false;
+            // PlayTrailRenderer();
+            if (MandatoryDirection == "down")
+            {
+                allowMoveDown = true;
+                CheckEndTutorialChildPosition();
+            }
+            else if (MandatoryDirection == "toolDown")
+            {
+                allowMoveDown = true;
+                MandatoryDirection = "";
+            }
+        }
+        else speed = 5;
 
         if (!TouchMove && absY <= 0.1f && (MandatoryDirection == "" || MandatoryDirection == "rotate"))
         {
@@ -337,7 +361,7 @@ public class Movement : MonoBehaviour
             if (MandatoryDirection == "rotate") SetTutorial(3);
         }
         TouchMove = false;
-        // countTimetouch = 0;
+        countTimetouch = 0;
         isTouchBegan = false;
     }
 

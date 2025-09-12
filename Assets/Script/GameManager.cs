@@ -41,8 +41,8 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // Application.targetFrameRate = 60;
-        // QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+        QualitySettings.vSyncCount = 0;
 
         // RectTransform rectBody = Home.transform.parent.parent.GetComponent<RectTransform>();
         // float uiWidthInUnits = rectBody.rect.x * rectBody.transform.localScale.x * -2;
